@@ -1,0 +1,77 @@
+version: '3.5'
+
+services:
+
+  artemis:
+    image: quay.io/artemiscloud/activemq-artemis-broker:1.0.25
+    ports:
+      - "8161:8161"
+      - "61616:61616"
+      - "5672:5672"
+    environment:
+      AMQ_USER: amylotool
+      AMQ_PASSWORD: amylotool
+    networks:
+      - amylotool-network
+
+  quarkus-amylotool-orchestrator:
+    image: quarkus/quarkus-amylotool-orchestrator-jvm
+    build:
+      context: quarkus-amylotool-orchestrator
+      dockerfile: src/main/docker/Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8080:8080"
+    networks:
+      - amylotool-network
+
+  quarkus-amylotool-predictor:
+    image: quarkus/quarkus-amylotool-predictor-jvm
+    build:
+      context: quarkus-amylotool-predictor
+      dockerfile: src/main/docker/Dockerfile
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - amylotool-network
+
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: amylotool
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    networks:
+      - amylotool-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@amylotool.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    networks:
+      - amylotool-network
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  pgadmin-data:
+
+networks:
+  amylotool-network:
+    name: amylotool

@@ -1,0 +1,34 @@
+---
+openapi: 3.0.3
+info:
+  title: quarkus-amylotool-predictor API
+  version: 1.0-SNAPSHOT
+tags:
+  - name: predictions
+paths:
+  /api/prediction:
+    post:
+      tags:
+        - predictions
+      summary: Run predictions on sequences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictionRequest'
+      responses:
+        "201":
+          description: Created
+components:
+  schemas:
+    PredictionRequest:
+      required:
+        - sequences
+      type: object
+      properties:
+        sequences:
+          type: array
+          items:
+            type: string
+        model:
+          type: string

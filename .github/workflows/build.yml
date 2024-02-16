@@ -25,6 +25,6 @@ jobs:
       run: mvn --no-transfer-progress --batch-mode --errors clean verify
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
-      env:
+      with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: chrispysz/quarkus-amylotool

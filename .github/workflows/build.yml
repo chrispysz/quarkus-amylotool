@@ -20,4 +20,11 @@ jobs:
         distribution: 'zulu'
         cache: maven
     - name: mvn clean package
-      run: mvn --no-transfer-progress --batch-mode --errors clean package
+      run: mvn --no-transfer-progress --batch-mode --errors clean package -Dmaven.test.skip=true
+    - name: mvn clean verify
+      run: mvn --no-transfer-progress --batch-mode --errors clean verify
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4.0.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: chrispysz/quarkus-amylotool

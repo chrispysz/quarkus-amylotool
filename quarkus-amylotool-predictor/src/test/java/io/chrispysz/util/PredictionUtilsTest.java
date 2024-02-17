@@ -98,23 +98,4 @@ public class PredictionUtilsTest {
 
         Assertions.assertEquals(0, subsequences.size(), "Should generate empty list.");
     }
-
-    @Test
-    public void testResultToMap() {
-        Map<String, Map<Integer, Float>> indexScoresForModel = new HashMap<>();
-        Map<Integer, Float> indexScores = new HashMap<>();
-        int modelNum = 1;
-        float[] modelResults = {0.1f, 0.2f, 0.3f};
-
-        Map<Integer, Float> expectedIndexScores = new HashMap<>();
-        for (int i = 0; i < modelResults.length; i++) {
-            expectedIndexScores.put(i, modelResults[i]);
-        }
-
-        utils.resultToMap(indexScoresForModel, indexScores, modelNum, modelResults);
-
-        Assertions.assertFalse(indexScoresForModel.isEmpty(), "indexScoresForModel should not be empty");
-        Assertions.assertTrue(indexScoresForModel.containsKey(String.valueOf(modelNum)), "indexScoresForModel should contain the modelNum as key");
-        Assertions.assertEquals(expectedIndexScores, indexScoresForModel.get(String.valueOf(modelNum)), "The indexScores map should match the expected values");
-    }
 }

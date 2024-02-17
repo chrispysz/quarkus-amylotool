@@ -15,29 +15,35 @@ services:
       - amylotool-network
 
   quarkus-amylotool-orchestrator:
-    image: quarkus/quarkus-amylotool-orchestrator-jvm
+    image: chrisp/quarkus-amylotool-orchestrator
     build:
       context: quarkus-amylotool-orchestrator
       dockerfile: src/main/docker/Dockerfile
     depends_on:
-      - kafka
+      - postgres
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      QA_ORCHESTRATOR_DB_USER: "qa_orchestrator"
+      QA_ORCHESTRATOR_DB_PASSWORD: "qa_orchestrator"
+      QA_ORCHESTRATOR_DB_URL: "jdbc:postgresql://postgres/qa_orchestrator"
     ports:
-      - "8080:8080"
+      - "8084:8084"
     networks:
       - amylotool-network
 
   quarkus-amylotool-predictor:
-    image: quarkus/quarkus-amylotool-predictor-jvm
+    image: chrisp/quarkus-amylotool-predictor
     build:
       context: quarkus-amylotool-predictor
       dockerfile: src/main/docker/Dockerfile
     depends_on:
-      - kafka
       - postgres
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      QA_PREDICTOR_DB_USER: "qa_predictor"
+      QA_PREDICTOR_DB_PASSWORD: "qa_predictor"
+      QA_PREDICTOR_DB_URL: "vertx-reactive:postgresql://postgres/qa_predictor"
+      QA_PREDICTOR_MODELS_PATH: "/deployments/models/"
+    ports:
+      - "8083:8083"
     networks:
       - amylotool-network
 
@@ -46,7 +52,6 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: amylotool
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
     networks:

@@ -17,8 +17,14 @@ paths:
             schema:
               $ref: '#/components/schemas/PredictionRequest'
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PredictionResult'
 components:
   schemas:
     PredictionRequest:
@@ -32,3 +38,17 @@ components:
             type: string
         model:
           type: string
+    PredictionResult:
+      type: object
+      properties:
+        sequence:
+          type: string
+        maxIndex:
+          format: int32
+          type: integer
+        score:
+          format: float
+          type: number
+        withModel:
+          format: int32
+          type: integer

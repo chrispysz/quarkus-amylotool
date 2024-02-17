@@ -15,25 +15,21 @@
 
     <properties>
         <skipITs>true</skipITs>
+        <tensorflow.java.version>0.5.0</tensorflow.java.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.tensorflow</groupId>
-                <artifactId>tensorflow-core-platform</artifactId>
-                <version>0.3.3</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.tensorflow</groupId>
-                        <artifactId>tensorflow-core-api:windows-x86_64</artifactId>
-
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.tensorflow</groupId>
-                        <artifactId>tensorflow-core-api:macosx-x86_64</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>tensorflow-core-api</artifactId>
+                <version>${tensorflow.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.tensorflow</groupId>
+                <artifactId>tensorflow-core-api</artifactId>
+                <version>${tensorflow.java.version}</version>
+                <classifier>linux-x86_64</classifier>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -41,7 +37,12 @@
     <dependencies>
         <dependency>
             <groupId>org.tensorflow</groupId>
-            <artifactId>tensorflow-core-platform</artifactId>
+            <artifactId>tensorflow-core-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow-core-api</artifactId>
+            <classifier>linux-x86_64</classifier>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

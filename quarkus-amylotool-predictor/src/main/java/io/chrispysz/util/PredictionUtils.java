@@ -109,12 +109,4 @@ public class PredictionUtils {
         return result;
     }
 
-    public void resultToMap(Map<String, Map<Integer, Float>> indexScoresForModel, Map<Integer, Float> indexScores, int modelNum, float[] modelResults) {
-        for (int i = 0; i < modelResults.length; i++) {
-            indexScores.put(i, modelResults[i]);
-        }
-
-        indexScoresForModel.put(String.valueOf(modelNum), indexScores);
-
-    }
 }

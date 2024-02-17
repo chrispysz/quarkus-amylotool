@@ -1,7 +1,9 @@
 package io.chrispysz.service;
 
+import io.chrispysz.entity.PredictionResult;
 import io.chrispysz.util.PredictionUtils;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
@@ -12,6 +14,7 @@ import org.tensorflow.ndarray.Shape;
 import org.tensorflow.types.TFloat32;
 import org.tensorflow.types.TInt32;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +25,11 @@ public class PredictionService {
     private final static int SEQ_LEN = 42;
     private final static int ZEROS_DIM = 8943;
     private final static int NUM_MODELS = 6;
+    @ConfigProperty(name = "predictions.models.path")
+    String MODELS_PATH;
 
     private final Logger logger;
     private final PredictionUtils utils;
-
     private final ClassLoader classLoader;
 
     public PredictionService(Logger logger, PredictionUtils utils) {
@@ -34,42 +38,57 @@ public class PredictionService {
         this.classLoader = getClass().getClassLoader();
     }
 
-    public void predictWithAllModels(String[] sequences) {
+    public List<PredictionResult> processPredictionRequest(List<String> sequences, String model) {
         Map<String, Map<Integer, Float>> indexScoresForModel = new HashMap<>();
+        List<PredictionResult> results = new ArrayList<>();
 
         for (String sequence : sequences) {
-            List<String> subsequences = utils.generateSubsequences(sequence, SEQ_LEN-2);
+            List<String> subsequences = utils.generateSubsequences(sequence, SEQ_LEN - 2);
 
-            for (int modelNum = 1; modelNum <= NUM_MODELS; modelNum++) {
-                Map<Integer, Float> indexScores = new HashMap<>();
-
-                String modelPath = "models/" + modelNum;
-                float[] modelResults = predictWithModel(modelPath, subsequences);
-
-                if (modelResults != null) {
-
-                    utils.resultToMap(indexScoresForModel, indexScores, modelNum, modelResults);
+            if (model == null || model.isEmpty()) {
+                for (int modelNum = 1; modelNum <= NUM_MODELS; modelNum++) {
+                    runPredictionsForModel(modelNum, subsequences, indexScoresForModel);
                 }
+            } else {
+                runPredictionsForModel(Integer.parseInt(model), subsequences, indexScoresForModel);
             }
 
             Map<Integer, Float> indexWithMaxAverage = utils.findIndexWithMaxAverage(indexScoresForModel);
 
-            if (indexWithMaxAverage.isEmpty()){
-                logger.info("No predictions were made");
-                return;
+            if (!indexWithMaxAverage.isEmpty()) {
+                Map.Entry<Integer, Float> entry = indexWithMaxAverage.entrySet().iterator().next();
+
+                if (model == null) {
+                    results.add(new PredictionResult(sequence, entry.getKey(), entry.getValue(), null));
+                } else {
+                    results.add(new PredictionResult(sequence, entry.getKey(), entry.getValue(), Integer.parseInt(model)));
+                }
+            }
+        }
+        return results;
+    }
+
+    private void runPredictionsForModel(int modelNum, List<String> subsequences, Map<String, Map<Integer, Float>> indexScoresForModel) {
+        Map<Integer, Float> indexScores = new HashMap<>();
+
+        String modelPath = MODELS_PATH + modelNum;
+        float[] modelResults = predictWithModel(modelPath, subsequences);
+
+        if (modelResults != null) {
+
+            for (int i = 0; i < modelResults.length; i++) {
+                indexScores.put(i, modelResults[i]);
             }
 
-            indexWithMaxAverage.forEach((key, val) -> {
-                logger.info("\nIndex: " + key + "\n" + "Value: " + val + "\n");
-            });
+            indexScoresForModel.put(String.valueOf(modelNum), indexScores);
         }
     }
 
 
-
     private float[] predictWithModel(String modelPath, List<String> sequences) {
+        String loadPath = MODELS_PATH.contains("deployments") ? modelPath : classLoader.getResource(modelPath).getPath();
 
-        try (SavedModelBundle model = SavedModelBundle.load(classLoader.getResource(modelPath).getPath(), "serve")) {
+        try (SavedModelBundle model = SavedModelBundle.load(loadPath, "serve")) {
             Session session = model.session();
 
             int[][] tokenizedSequences = utils.tokenizeSequences(sequences, SEQ_LEN);
@@ -105,7 +124,7 @@ public class PredictionService {
                 return null;
             }
         } catch (Exception e) {
-            logger.error("Error loading model from path: " + modelPath, e);
+            logger.error("Error loading model from path: " + loadPath, e);
             return null;
         }
     }

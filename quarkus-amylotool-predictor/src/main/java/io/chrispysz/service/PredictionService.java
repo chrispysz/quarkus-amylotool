@@ -1,10 +1,14 @@
 package io.chrispysz.service;
 
-import io.chrispysz.entity.PredictionResult;
+import io.chrispysz.model.PredictionResult;
 import io.chrispysz.util.PredictionUtils;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.jboss.logging.Logger;
+import org.tensorflow.Result;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.ndarray.FloatNdArray;
@@ -28,22 +32,27 @@ public class PredictionService {
     @ConfigProperty(name = "predictions.models.path")
     String MODELS_PATH;
 
-    private final Logger logger;
-    private final PredictionUtils utils;
-    private final ClassLoader classLoader;
+    @Channel("prediction-results")
+    Emitter<PredictionResult> predictionResultEmitter;
 
-    public PredictionService(Logger logger, PredictionUtils utils) {
-        this.logger = logger;
-        this.utils = utils;
-        this.classLoader = getClass().getClassLoader();
-    }
+    @Inject
+    Logger log;
+    @Inject
+    PredictionUtils utils;
+    ClassLoader classLoader = getClass().getClassLoader();
 
-    public List<PredictionResult> processPredictionRequest(List<String> sequences, String model) {
-        Map<String, Map<Integer, Float>> indexScoresForModel = new HashMap<>();
+
+    public List<PredictionResult> processPredictionRequest(Map<String, String> sequences, String model, String taskId) {
         List<PredictionResult> results = new ArrayList<>();
 
-        for (String sequence : sequences) {
-            List<String> subsequences = utils.generateSubsequences(sequence, SEQ_LEN - 2);
+        Map<String, Map<Integer, Float>> indexScoresForModel = new HashMap<>();
+        int sequencesSize = sequences.size();
+        int currentSequenceIndex = 0;
+
+
+        for (Map.Entry<String, String> sequence : sequences.entrySet()) {
+            currentSequenceIndex++;
+            List<String> subsequences = utils.generateSubsequences(sequence.getValue(), SEQ_LEN - 2);
 
             if (model == null || model.isEmpty()) {
                 for (int modelNum = 1; modelNum <= NUM_MODELS; modelNum++) {
@@ -58,13 +67,22 @@ public class PredictionService {
             if (!indexWithMaxAverage.isEmpty()) {
                 Map.Entry<Integer, Float> entry = indexWithMaxAverage.entrySet().iterator().next();
 
+                PredictionResult res;
                 if (model == null) {
-                    results.add(new PredictionResult(sequence, entry.getKey(), entry.getValue(), null));
+                    res = new PredictionResult(taskId, sequence.getKey(), entry.getKey(), entry.getValue(), null);
                 } else {
-                    results.add(new PredictionResult(sequence, entry.getKey(), entry.getValue(), Integer.parseInt(model)));
+                    res = new PredictionResult(taskId, sequence.getKey(), entry.getKey(), entry.getValue(), Integer.parseInt(model));
                 }
+
+                if (currentSequenceIndex == sequencesSize) {
+                    res.isLast = true;
+                }
+
+                results.add(res);
+                predictionResultEmitter.send(res);
             }
         }
+
         return results;
     }
 
@@ -103,11 +121,13 @@ public class PredictionService {
             }
 
             // Execute the model
-            try (TFloat32 resultTensor = (TFloat32) session.runner()
+            try (Result result = session.runner()
                     .feed("serving_default_input-seq", TInt32.tensorOf(seqNdArray))
                     .feed("serving_default_input-annotations", TFloat32.tensorOf(zerosNdArray))
                     .fetch("StatefulPartitionedCall")
-                    .run().get(0)) {
+                    .run()) {
+
+                TFloat32 resultTensor = (TFloat32) result.get(0);
 
                 long[] shape = resultTensor.shape().asArray();
 
@@ -120,11 +140,11 @@ public class PredictionService {
 
                 return results;
             } catch (Exception e) {
-                logger.error("Error during model execution", e);
+                log.error("Error during model execution", e);
                 return null;
             }
         } catch (Exception e) {
-            logger.error("Error loading model from path: " + loadPath, e);
+            log.error("Error loading model from path: " + loadPath, e);
             return null;
         }
     }

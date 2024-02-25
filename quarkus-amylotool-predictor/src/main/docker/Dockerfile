@@ -90,7 +90,7 @@ COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
 # Copy model directory to the container
 COPY --chown=185 src/main/resources/models /deployments/models/
 
-EXPOSE 8080
+EXPOSE 8083
 USER 185
 ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"

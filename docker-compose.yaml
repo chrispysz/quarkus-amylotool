@@ -9,19 +9,22 @@ services:
       - "61616:61616"
       - "5672:5672"
     environment:
-      AMQ_USER: amylotool
-      AMQ_PASSWORD: amylotool
+      AMQ_USER: quarkus
+      AMQ_PASSWORD: quarkus
     networks:
       - amylotool-network
 
   quarkus-amylotool-orchestrator:
-    image: chrisp/quarkus-amylotool-orchestrator
+    image: chrisp/quarkus-amylotool-orchestrator:1.0-SNAPSHOT
     build:
       context: quarkus-amylotool-orchestrator
       dockerfile: src/main/docker/Dockerfile
     depends_on:
       - postgres
     environment:
+      AMQP_HOST: artemis
+      AMQP_PORT: 5672
+      QA_PREDICTOR_URL: "http://quarkus-amylotool-predictor:8083"
       QA_ORCHESTRATOR_DB_USER: "qa_orchestrator"
       QA_ORCHESTRATOR_DB_PASSWORD: "qa_orchestrator"
       QA_ORCHESTRATOR_DB_URL: "jdbc:postgresql://postgres/qa_orchestrator"
@@ -31,13 +34,15 @@ services:
       - amylotool-network
 
   quarkus-amylotool-predictor:
-    image: chrisp/quarkus-amylotool-predictor
+    image: chrisp/quarkus-amylotool-predictor:1.0-SNAPSHOT
     build:
       context: quarkus-amylotool-predictor
       dockerfile: src/main/docker/Dockerfile
     depends_on:
       - postgres
     environment:
+      AMQP_HOST: artemis
+      AMQP_PORT: 5672
       QA_PREDICTOR_DB_USER: "qa_predictor"
       QA_PREDICTOR_DB_PASSWORD: "qa_predictor"
       QA_PREDICTOR_DB_URL: "vertx-reactive:postgresql://postgres/qa_predictor"

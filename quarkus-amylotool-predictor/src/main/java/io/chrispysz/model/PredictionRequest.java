@@ -2,16 +2,30 @@ package io.chrispysz.model;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.util.List;
+import java.util.Map;
 
 public class PredictionRequest {
 
     @NotNull
-    private List<String> sequences;
+    private String taskGuid;
+
+    @NotNull
+    private Map<String, String> sequences;
 
     private String model;
 
-    public List<String> getSequences() {
+
+    public PredictionRequest(String taskGuid, Map<String, String> sequences, String model) {
+        this.taskGuid = taskGuid;
+        this.sequences = sequences;
+        this.model = model;
+    }
+
+    public String getTaskGuid() {
+        return taskGuid;
+    }
+
+    public Map<String, String> getSequences() {
         return sequences;
     }
 

@@ -1,34 +1,30 @@
 package io.chrispysz.controller;
 
-import io.chrispysz.entity.PredictionResult;
 import io.chrispysz.model.PredictionRequest;
+import io.chrispysz.model.PredictionResult;
 import io.chrispysz.service.PredictionService;
-import jakarta.validation.Valid;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import io.vertx.core.json.JsonObject;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.reactive.RestResponse;
 
 import java.util.List;
 
-@Path("/api/prediction")
-@Tag(name = "predictions")
 public class PredictionController {
 
-    Logger logger;
+    @Inject
+    Logger log;
+
+    @Inject
     PredictionService predictionService;
 
-    public PredictionController(Logger logger, PredictionService predictionService) {
-        this.logger = logger;
-        this.predictionService = predictionService;
-    }
+    @Incoming("requests")
+    public void acceptMessage(JsonObject request) {
+        PredictionRequest mappedRequest = request.mapTo(PredictionRequest.class);
 
-    @Operation(summary = "Run predictions on sequences")
-    @POST
-    public RestResponse<List<PredictionResult>> predict(@Valid PredictionRequest request) {
-        List<PredictionResult> results = predictionService.processPredictionRequest(request.getSequences(), request.getModel());
-        return RestResponse.accepted(results);
+        List<PredictionResult> results = predictionService.processPredictionRequest(mappedRequest.getSequences(), mappedRequest.getModel(), mappedRequest.getTaskGuid());
+
+        log.info("Finished running " + results.size() + " predictions for id: " + mappedRequest.getTaskGuid());
+
     }
 }

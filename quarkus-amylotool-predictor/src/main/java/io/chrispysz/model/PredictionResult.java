@@ -1,8 +1,6 @@
 package io.chrispysz.model;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
-
-public class PredictionResult extends PanacheEntityBase {
+public class PredictionResult {
 
     public String taskGuid;
 

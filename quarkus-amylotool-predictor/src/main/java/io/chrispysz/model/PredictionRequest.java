@@ -1,15 +1,11 @@
 package io.chrispysz.model;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.util.Map;
 
 public class PredictionRequest {
 
-    @NotNull
     private String taskGuid;
 
-    @NotNull
     private Map<String, String> sequences;
 
     private String model;
